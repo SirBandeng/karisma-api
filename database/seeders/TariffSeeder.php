@@ -9,7 +9,8 @@ class TariffSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = \App\Models\User::where('username', 'admin')->first();
+        // Pakai superadmin sebagai created_by
+        $admin = \App\Models\User::where('username', 'superadmin')->first();
 
         $tariffs = [
             ['vehicle_type' => 'roda23',    'amount' => 2000],
@@ -19,7 +20,6 @@ class TariffSeeder extends Seeder
         ];
 
         foreach ($tariffs as $tariff) {
-            // Cek apakah sudah ada tarif untuk kategori ini
             $exists = Tariff::where('vehicle_type', $tariff['vehicle_type'])->exists();
 
             if (!$exists) {

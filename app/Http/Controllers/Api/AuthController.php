@@ -16,7 +16,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('username', $request->username)
+        $user = User::with('terminal')->where('username', $request->username)
             ->where('is_active', true)
             ->first();
 
@@ -30,12 +30,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'username' => $user->username,
-                'role'     => $user->role,
-            ],
+            'user'  => $this->formatUser($user),
         ]);
     }
 
@@ -50,11 +45,23 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json([
-            'id'       => $request->user()->id,
-            'name'     => $request->user()->name,
-            'username' => $request->user()->username,
-            'role'     => $request->user()->role,
-        ]);
+        $user = $request->user()->load('terminal');
+        return response()->json($this->formatUser($user));
+    }
+
+    private function formatUser($user): array
+    {
+        return [
+            'id'          => $user->id,
+            'name'        => $user->name,
+            'username'    => $user->username,
+            'role'        => $user->role,
+            'terminal_id' => $user->terminal_id,
+            'terminal'    => $user->terminal ? [
+                'id'       => $user->terminal->id,
+                'name'     => $user->terminal->name,
+                'location' => $user->terminal->location,
+            ] : null,
+        ];
     }
 }

@@ -26,11 +26,13 @@ class DailySheetExport implements
     WithEvents
 {
     protected string $date;
+    protected int $terminalId;
     protected int $totalRows = 0;
 
-    public function __construct(string $date)
+    public function __construct(string $date, int $terminalId)
     {
-        $this->date = $date;
+        $this->date       = $date;
+        $this->terminalId = $terminalId;
     }
 
     public function title(): string
@@ -54,10 +56,12 @@ class DailySheetExport implements
     {
         $transactions = Transaction::with('petugas')
             ->where('date', $this->date)
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
             ->orderBy('recorded_at')
             ->get();
 
         $serials = DailySerialNumber::where('date', $this->date)
+            ->where('terminal_id', $this->terminalId)
             ->get()
             ->keyBy('vehicle_type');
 
@@ -68,7 +72,6 @@ class DailySheetExport implements
             'bermalam'  => 'Bermalam',
         ];
 
-        // Hitung urutan per kategori
         $counters = [
             'roda23'    => 0,
             'roda4'     => 0,
@@ -83,14 +86,13 @@ class DailySheetExport implements
             $type   = $trx->vehicle_type;
             $serial = $serials->get($type);
 
-            // Hitung no. tiket
             if ($type === 'bermalam' || !$serial) {
                 $noTiket = '-';
             } else {
                 $counters[$type]++;
-                $startNum = (int) $serial->serial_start;
+                $startNum  = (int) $serial->serial_start;
                 $ticketNum = $startNum + ($counters[$type] - 1);
-                $noTiket  = '04.' . str_pad(
+                $noTiket   = '04.' . str_pad(
                     $ticketNum,
                     strlen($serial->serial_start),
                     '0',
@@ -117,6 +119,7 @@ class DailySheetExport implements
         $rows[] = ['', 'RINGKASAN', '', '', '', ''];
 
         $categoryTotals = Transaction::where('date', $this->date)
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
             ->selectRaw('vehicle_type, COUNT(*) as total, SUM(tariff_amount) as pendapatan')
             ->groupBy('vehicle_type')
             ->get()
@@ -136,10 +139,16 @@ class DailySheetExport implements
             ];
         }
 
-        $grandTotal      = Transaction::where('date', $this->date)->sum('tariff_amount');
-        $grandCount      = Transaction::where('date', $this->date)->count();
-        $rows[]          = ['', '', '', '', '', ''];
-        $rows[]          = [
+        $grandTotal = Transaction::where('date', $this->date)
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
+            ->sum('tariff_amount');
+
+        $grandCount = Transaction::where('date', $this->date)
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
+            ->count();
+
+        $rows[] = ['', '', '', '', '', ''];
+        $rows[] = [
             '',
             'TOTAL',
             "$grandCount kendaraan",
@@ -183,14 +192,12 @@ class DailySheetExport implements
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                // Border untuk data rows
                 $lastDataRow = $this->totalRows + 1;
                 $sheet->getStyle("A1:F$lastDataRow")
                     ->getBorders()
                     ->getAllBorders()
                     ->setBorderStyle(Border::BORDER_THIN);
 
-                // Style header tanggal di atas tabel
                 $date = Carbon::parse($this->date)
                     ->locale('id')
                     ->isoFormat('dddd, D MMMM Y');
@@ -207,7 +214,6 @@ class DailySheetExport implements
                     ],
                 ]);
 
-                // Freeze header row
                 $sheet->freezePane('A4');
             },
         ];

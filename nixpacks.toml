@@ -9,8 +9,10 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "php artisan config:clear"
+  "php artisan config:clear",
+  "php artisan route:clear",
+  "php artisan view:clear"
 ]
 
 [start]
-cmd = "php artisan migrate --force && php -S 0.0.0.0:$PORT -t public"
+cmd = "php artisan migrate --force && php artisan db:seed --class=TerminalSeeder --force && php artisan db:seed --class=UserSeeder --force && php -S 0.0.0.0:$PORT -t public"

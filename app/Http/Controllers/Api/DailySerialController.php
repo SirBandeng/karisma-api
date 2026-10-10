@@ -11,8 +11,13 @@ class DailySerialController extends Controller
 {
     public function index(Request $request)
     {
-        $date    = $request->query('date', now()->toDateString());
-        $serials = DailySerialNumber::where('date', $date)->get();
+        $date       = $request->query('date', now()->toDateString());
+        $auth       = $request->user();
+        $terminalId = $auth->terminal_id;
+
+        $serials = DailySerialNumber::where('date', $date)
+            ->where('terminal_id', $terminalId)
+            ->get();
 
         $result = [];
         foreach (['roda23', 'roda4', 'rodaplus4'] as $type) {
@@ -21,12 +26,13 @@ class DailySerialController extends Controller
             if ($serial) {
                 $count = Transaction::where('date', $date)
                     ->where('vehicle_type', $type)
+                    ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
                     ->count();
 
                 $result[$type] = [
                     'status'       => 'filled',
                     'serial_start' => $serial->serial_start,
-                    'serial_end' => $count > 0
+                    'serial_end'   => $count > 0
                         ? str_pad(
                             (int)$serial->serial_start + ($count - 1),
                             strlen($serial->serial_start),
@@ -51,15 +57,17 @@ class DailySerialController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'vehicle_type'  => 'required|in:roda23,roda4,rodaplus4',
-            'serial_start'  => 'required|string|min:1',
-            'date'          => 'sometimes|date',
+            'vehicle_type' => 'required|in:roda23,roda4,rodaplus4',
+            'serial_start' => 'required|string|min:1',
+            'date'         => 'sometimes|date',
         ]);
 
-        $date = $request->date ?? now()->toDateString();
+        $date       = $request->date ?? now()->toDateString();
+        $terminalId = $request->user()->terminal_id;
 
         $existing = DailySerialNumber::where('date', $date)
             ->where('vehicle_type', $request->vehicle_type)
+            ->where('terminal_id', $terminalId)
             ->first();
 
         if ($existing) {
@@ -74,6 +82,7 @@ class DailySerialController extends Controller
             'serial_start' => $request->serial_start,
             'inputted_by'  => $request->user()->id,
             'inputted_at'  => now(),
+            'terminal_id'  => $terminalId,
         ]);
 
         return response()->json([

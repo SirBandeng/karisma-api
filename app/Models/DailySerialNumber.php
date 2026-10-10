@@ -9,12 +9,18 @@ class DailySerialNumber extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'terminal_id',
         'date',
         'vehicle_type',
         'serial_start',
         'inputted_by',
         'inputted_at',
     ];
+
+    public function terminal()
+    {
+        return $this->belongsTo(Terminal::class);
+    }
 
     protected function casts(): array
     {

@@ -11,6 +11,7 @@ class User extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $fillable = [
+        'terminal_id',
         'name',
         'username',
         'password',
@@ -29,5 +30,10 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function terminal()
+    {
+        return $this->belongsTo(Terminal::class);
     }
 }

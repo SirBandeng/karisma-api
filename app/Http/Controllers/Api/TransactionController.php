@@ -16,7 +16,6 @@ class TransactionController extends Controller
             'vehicle_type' => 'required|in:roda23,roda4,rodaplus4,bermalam',
         ]);
 
-        // Ambil tarif aktif saat ini
         $tariff = Tariff::where('vehicle_type', $request->vehicle_type)
             ->where('effective_date', '<=', now()->toDateString())
             ->orderByDesc('effective_date')
@@ -47,9 +46,14 @@ class TransactionController extends Controller
 
     public function todaySummary(Request $request)
     {
-        $today = now()->toDateString();
+        $today    = now()->toDateString();
+        $auth     = $request->user();
+
+        // Ambil terminal_id dari user yang login
+        $terminalId = $auth->terminal_id;
 
         $summary = Transaction::where('date', $today)
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
             ->selectRaw('vehicle_type, COUNT(*) as total, SUM(tariff_amount) as pendapatan')
             ->groupBy('vehicle_type')
             ->get()
@@ -61,21 +65,21 @@ class TransactionController extends Controller
         $grandCount = 0;
 
         foreach ($categories as $cat) {
-            $data          = $summary->get($cat);
-            $total         = $data ? (int) $data->total : 0;
-            $pendapatan    = $data ? (int) $data->pendapatan : 0;
-            $grandTotal   += $pendapatan;
-            $grandCount   += $total;
-            $result[$cat]  = [
+            $data        = $summary->get($cat);
+            $total       = $data ? (int) $data->total : 0;
+            $pendapatan  = $data ? (int) $data->pendapatan : 0;
+            $grandTotal += $pendapatan;
+            $grandCount += $total;
+            $result[$cat] = [
                 'total'      => $total,
                 'pendapatan' => $pendapatan,
             ];
         }
 
         return response()->json([
-            'date'           => $today,
-            'per_kategori'   => $result,
-            'total_kendaraan' => $grandCount,
+            'date'             => $today,
+            'per_kategori'     => $result,
+            'total_kendaraan'  => $grandCount,
             'total_pendapatan' => $grandTotal,
         ]);
     }

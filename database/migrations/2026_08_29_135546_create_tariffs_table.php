@@ -1,25 +1,35 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace Database\Seeders;
 
-return new class extends Migration
+use Illuminate\Database\Seeder;
+use App\Models\Tariff;
+
+class TariffSeeder extends Seeder
 {
-    public function up(): void
+    public function run(): void
     {
-        Schema::create('tariffs', function (Blueprint $table) {
-            $table->id();
-            $table->enum('vehicle_type', ['roda23', 'roda4', 'rodaplus4', 'bermalam']);
-            $table->integer('amount');
-            $table->date('effective_date');
-            $table->foreignId('created_by')->constrained('users');
-            $table->timestamp('created_at')->useCurrent();
-        });
-    }
+        // Pakai superadmin sebagai created_by
+        $admin = \App\Models\User::where('username', 'superadmin')->first();
 
-    public function down(): void
-    {
-        Schema::dropIfExists('tariffs');
+        $tariffs = [
+            ['vehicle_type' => 'roda23',    'amount' => 2000],
+            ['vehicle_type' => 'roda4',     'amount' => 3000],
+            ['vehicle_type' => 'rodaplus4', 'amount' => 4000],
+            ['vehicle_type' => 'bermalam',  'amount' => 20000],
+        ];
+
+        foreach ($tariffs as $tariff) {
+            $exists = Tariff::where('vehicle_type', $tariff['vehicle_type'])->exists();
+
+            if (!$exists) {
+                Tariff::create([
+                    'vehicle_type'   => $tariff['vehicle_type'],
+                    'amount'         => $tariff['amount'],
+                    'effective_date' => now()->toDateString(),
+                    'created_by'     => $admin->id,
+                ]);
+            }
+        }
     }
-};
+}

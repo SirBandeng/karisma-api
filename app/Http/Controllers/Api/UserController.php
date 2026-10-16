@@ -22,6 +22,17 @@ class UserController extends Controller
         return response()->json($users);
     }
 
+    public function adminIndex()
+    {
+        return response()->json(
+            User::with('terminal')
+                ->where('role', 'admin')
+                ->select('id', 'name', 'username', 'is_active', 'terminal_id', 'created_at')
+                ->orderBy('name')
+                ->get()
+        );
+    }
+
     public function store(Request $request)
     {
         $auth = $request->user();

@@ -58,6 +58,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/terminals',            [TerminalController::class, 'store']);
         Route::put('/terminals/{terminal}',  [TerminalController::class, 'update']);
 
+        // Manage admin
+        Route::get('/admin-users', [UserController::class, 'adminIndex']);
+
         // Laporan gabungan semua terminal
         Route::get('/reports/all-terminals', [ReportController::class, 'allTerminals']);
     });

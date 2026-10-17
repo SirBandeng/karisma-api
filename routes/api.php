@@ -31,6 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:petugas')->group(function () {
         Route::post('/transactions',              [TransactionController::class, 'store']);
         Route::get('/transactions/today/summary', [TransactionController::class, 'todaySummary']);
+        Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy']);
+        Route::get('/transactions/last', [TransactionController::class, 'last']);
     });
 
     // ─── Admin (+ superadmin via hierarchy) ───────────

@@ -83,4 +83,53 @@ class TransactionController extends Controller
             'total_pendapatan' => $grandTotal,
         ]);
     }
+
+    public function destroy(Request $request, Transaction $transaction)
+    {
+        // Pastikan transaksi milik petugas yang login
+        if ($transaction->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Kamu tidak bisa menghapus transaksi milik petugas lain.'
+            ], 403);
+        }
+
+        // Hanya bisa hapus transaksi dalam 5 menit terakhir
+        $limit = now()->subMinutes(5);
+        if ($transaction->recorded_at < $limit) {
+            return response()->json([
+                'message' => 'Transaksi hanya bisa dibatalkan dalam 5 menit setelah dicatat.'
+            ], 422);
+        }
+
+        $transaction->delete();
+
+        return response()->json([
+            'message' => 'Transaksi berhasil dibatalkan.'
+        ]);
+    }
+
+    public function last(Request $request)
+    {
+        $transaction = Transaction::where('user_id', $request->user()->id)
+            ->where('date', now()->toDateString())
+            ->latest('recorded_at')
+            ->first();
+
+        if (!$transaction) {
+            return response()->json(['transaction' => null]);
+        }
+
+        // Cek apakah masih dalam 5 menit
+        $canCancel = $transaction->recorded_at >= now()->subMinutes(5);
+
+        return response()->json([
+            'transaction' => [
+                'id'           => $transaction->id,
+                'vehicle_type' => $transaction->vehicle_type,
+                'tariff_amount' => $transaction->tariff_amount,
+                'recorded_at'  => $transaction->recorded_at,
+                'can_cancel'   => $canCancel,
+            ],
+        ]);
+    }
 }

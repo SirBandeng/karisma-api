@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\DailySerialNumber;
+use App\Models\Terminal;
 use App\Models\Transaction;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -27,17 +28,21 @@ class DailySheetExport implements
 {
     protected string $date;
     protected int $terminalId;
+    protected string $terminalName;
     protected int $totalRows = 0;
 
     public function __construct(string $date, int $terminalId)
     {
-        $this->date       = $date;
-        $this->terminalId = $terminalId;
+        $this->date         = $date;
+        $this->terminalId   = $terminalId;
+        $this->terminalName = Terminal::find($terminalId)?->name ?? 'Terminal';
     }
 
     public function title(): string
     {
-        return Carbon::parse($this->date)->format('d-m-Y');
+        // Nama sheet Excel: maks 31 karakter, tidak boleh ada / \ ? * [ ]
+        $prefix = substr($this->terminalName, 0, 17);
+        return $prefix . ' - ' . Carbon::parse($this->date)->format('d-m-Y');
     }
 
     public function headings(): array
@@ -114,7 +119,7 @@ class DailySheetExport implements
 
         $this->totalRows = count($rows);
 
-        // Summary per kategori
+        // Baris pemisah sebelum ringkasan
         $rows[] = ['', '', '', '', '', ''];
         $rows[] = ['', 'RINGKASAN', '', '', '', ''];
 
@@ -175,7 +180,9 @@ class DailySheetExport implements
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => [
+            // Baris 1 adalah judul besar (diinsert di AfterSheet),
+            // baris 3 adalah heading kolom (setelah insert 2 baris)
+            3 => [
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType'   => Fill::FILL_SOLID,
@@ -192,19 +199,27 @@ class DailySheetExport implements
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
+                // Border untuk area data (sebelum insert baris judul)
+                // +1 karena heading, +1 untuk row pertama data
                 $lastDataRow = $this->totalRows + 1;
-                $sheet->getStyle("A1:F$lastDataRow")
+                $sheet->getStyle("A1:F{$lastDataRow}")
                     ->getBorders()
                     ->getAllBorders()
                     ->setBorderStyle(Border::BORDER_THIN);
 
+                // Insert 2 baris di atas: baris 1 = judul, baris 2 = kosong
+                $sheet->insertNewRowBefore(1, 2);
+
+                // Judul laporan dengan nama terminal
                 $date = Carbon::parse($this->date)
                     ->locale('id')
                     ->isoFormat('dddd, D MMMM Y');
 
-                $sheet->insertNewRowBefore(1, 2);
                 $sheet->mergeCells('A1:F1');
-                $sheet->setCellValue('A1', 'LAPORAN HARIAN TERMINAL — ' . strtoupper($date));
+                $sheet->setCellValue(
+                    'A1',
+                    'LAPORAN HARIAN ' . strtoupper($this->terminalName) . ' — ' . strtoupper($date)
+                );
                 $sheet->getStyle('A1')->applyFromArray([
                     'font'      => ['bold' => true, 'size' => 13],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -214,6 +229,10 @@ class DailySheetExport implements
                     ],
                 ]);
 
+                // Autofilter di baris header (baris 3 setelah insert 2 baris)
+                $sheet->setAutoFilter('A3:F3');
+
+                // Freeze di baris 4 agar judul + header tetap terlihat saat scroll
                 $sheet->freezePane('A4');
             },
         ];

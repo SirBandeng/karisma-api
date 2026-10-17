@@ -49,8 +49,11 @@ class SyncToGoogleSheets extends Command
                 $this->info("✓ {$terminal->name} berhasil disync!");
             } catch (\Exception $e) {
                 $this->error("✗ {$terminal->name} gagal: " . $e->getMessage());
+                $this->error("File: " . $e->getFile() . " Line: " . $e->getLine());
                 Log::error("Sheets sync failed for {$terminal->name}", [
                     'message' => $e->getMessage(),
+                    'file'    => $e->getFile(),
+                    'line'    => $e->getLine(),
                 ]);
             }
         }

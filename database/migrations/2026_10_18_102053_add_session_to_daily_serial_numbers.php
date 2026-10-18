@@ -9,13 +9,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('daily_serial_numbers', function (Blueprint $table) {
-            $table->unsignedTinyInteger('session')->default(1)->after('vehicle_type');
+            if (!Schema::hasColumn('daily_serial_numbers', 'session')) {
+                $table->unsignedTinyInteger('session')->default(1)->after('vehicle_type');
+            }
         });
 
-        // Update unique constraint — sekarang per date+vehicle_type+session+terminal
+        // Update unique constraint
         Schema::table('daily_serial_numbers', function (Blueprint $table) {
-            $table->dropUnique(['date', 'vehicle_type']);
-            $table->unique(['date', 'vehicle_type', 'session', 'terminal_id']);
+            try {
+                $table->dropUnique(['date', 'vehicle_type']);
+            } catch (\Exception $e) {
+                // Constraint mungkin sudah tidak ada
+            }
+
+            try {
+                $table->unique(['date', 'vehicle_type', 'session', 'terminal_id']);
+            } catch (\Exception $e) {
+                // Constraint mungkin sudah ada
+            }
         });
     }
 

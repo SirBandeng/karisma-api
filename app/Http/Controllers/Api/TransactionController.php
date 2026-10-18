@@ -52,7 +52,8 @@ class TransactionController extends Controller
         // Ambil terminal_id dari user yang login
         $terminalId = $auth->terminal_id;
 
-        $summary = Transaction::where('date', $today)
+        $summary = Transaction::active()
+            ->where('date', $today)
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
             ->selectRaw('vehicle_type, COUNT(*) as total, SUM(tariff_amount) as pendapatan')
             ->groupBy('vehicle_type')
@@ -86,14 +87,18 @@ class TransactionController extends Controller
 
     public function destroy(Request $request, Transaction $transaction)
     {
-        // Pastikan transaksi milik petugas yang login
         if ($transaction->user_id !== $request->user()->id) {
             return response()->json([
-                'message' => 'Kamu tidak bisa menghapus transaksi milik petugas lain.'
+                'message' => 'Kamu tidak bisa membatalkan transaksi milik petugas lain.'
             ], 403);
         }
 
-        // Hanya bisa hapus transaksi dalam 5 menit terakhir
+        if ($transaction->cancelled_at !== null) {
+            return response()->json([
+                'message' => 'Transaksi ini sudah dibatalkan sebelumnya.'
+            ], 422);
+        }
+
         $limit = now()->subMinutes(5);
         if ($transaction->recorded_at < $limit) {
             return response()->json([
@@ -101,7 +106,15 @@ class TransactionController extends Controller
             ], 422);
         }
 
-        $transaction->delete();
+        $request->validate([
+            'reason' => 'required|string|max:255',
+        ]);
+
+        $transaction->update([
+            'cancelled_at'  => now(),
+            'cancelled_by'  => $request->user()->id,
+            'cancel_reason' => $request->reason,
+        ]);
 
         return response()->json([
             'message' => 'Transaksi berhasil dibatalkan.'
@@ -110,7 +123,8 @@ class TransactionController extends Controller
 
     public function last(Request $request)
     {
-        $transaction = Transaction::where('user_id', $request->user()->id)
+        $transaction = Transaction::active()
+            ->where('user_id', $request->user()->id)
             ->where('date', now()->toDateString())
             ->latest('recorded_at')
             ->first();
@@ -130,6 +144,32 @@ class TransactionController extends Controller
                 'recorded_at'  => $transaction->recorded_at,
                 'can_cancel'   => $canCancel,
             ],
+        ]);
+    }
+
+    public function cancellations(Request $request)
+    {
+        $terminalId = $request->user()->terminal_id;
+
+        $cancellations = Transaction::with(['petugas:id,name', 'cancelledBy:id,name'])
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
+            ->whereNotNull('cancelled_at')
+            ->orderByDesc('cancelled_at')
+            ->get()
+            ->map(fn($t) => [
+                'id'            => $t->id,
+                'vehicle_type'  => $t->vehicle_type,
+                'tariff_amount' => $t->tariff_amount,
+                'date'          => $t->date,
+                'recorded_at'   => $t->recorded_at,
+                'cancelled_at'  => $t->cancelled_at,
+                'petugas'       => $t->petugas->name ?? '-',
+                'cancelled_by'  => $t->cancelledBy->name ?? '-',
+                'cancel_reason' => $t->cancel_reason,
+            ]);
+
+        return response()->json([
+            'data' => $cancellations
         ]);
     }
 }

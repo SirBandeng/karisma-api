@@ -69,7 +69,8 @@ class SyncToGoogleSheets extends Command
         $categories = ['roda23', 'roda4', 'rodaplus4', 'bermalam'];
 
         // Ambil transaksi terminal ini
-        $transactions = Transaction::where('date', $date)
+        $transactions = Transaction::active()
+            ->where('date', $date)
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminal->id))
             ->selectRaw('vehicle_type, COUNT(*) as total, SUM(tariff_amount) as pendapatan')
             ->groupBy('vehicle_type')

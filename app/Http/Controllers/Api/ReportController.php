@@ -12,7 +12,8 @@ class ReportController extends Controller
     // Helper — filter transaksi by terminal
     private function transactionQuery(int $terminalId)
     {
-        return Transaction::whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId));
+        return Transaction::active()
+            ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId));
     }
 
     public function daily(Request $request)
@@ -170,7 +171,8 @@ class ReportController extends Controller
         $year       = $request->query('year');
         $categories = ['roda23', 'roda4', 'rodaplus4', 'bermalam'];
 
-        $summary = Transaction::whereMonth('date', $month)
+        $summary = Transaction::active()
+            ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->selectRaw('vehicle_type, COUNT(*) as total, SUM(tariff_amount) as pendapatan')
             ->groupBy('vehicle_type')

@@ -51,6 +51,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users',                 [UserController::class, 'store']);
         Route::put('/users/{user}',           [UserController::class, 'update']);
         Route::patch('/users/{user}/toggle',  [UserController::class, 'toggle']);
+
+        Route::get('/transactions/cancellations', [TransactionController::class, 'cancellations']);
     });
 
     // ─── Superadmin only ──────────────────────────────

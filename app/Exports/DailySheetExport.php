@@ -123,7 +123,8 @@ class DailySheetExport implements
         $rows[] = ['', '', '', '', '', ''];
         $rows[] = ['', 'RINGKASAN', '', '', '', ''];
 
-        $categoryTotals = Transaction::where('date', $this->date)
+        $categoryTotals = Transaction::active()
+            ->where('date', $this->date)
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
             ->selectRaw('vehicle_type, COUNT(*) as total, SUM(tariff_amount) as pendapatan')
             ->groupBy('vehicle_type')
@@ -144,11 +145,13 @@ class DailySheetExport implements
             ];
         }
 
-        $grandTotal = Transaction::where('date', $this->date)
+        $grandTotal = Transaction::active()
+            ->where('date', $this->date)
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
             ->sum('tariff_amount');
 
-        $grandCount = Transaction::where('date', $this->date)
+        $grandCount = Transaction::active()
+            ->where('date', $this->date)
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
             ->count();
 

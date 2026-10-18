@@ -14,14 +14,30 @@ class Transaction extends Model
         'tariff_amount',
         'date',
         'recorded_at',
+        'cancelled_at',
+        'cancelled_by',
+        'cancel_reason',
     ];
 
     protected function casts(): array
     {
         return [
-            'recorded_at' => 'datetime',
-            'date'        => 'date',
+            'recorded_at'  => 'datetime',
+            'cancelled_at' => 'datetime',
+            'date'         => 'date',
         ];
+    }
+
+    // Relasi ke petugas yang batalkan
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    // Scope — transaksi aktif (belum dibatalkan)
+    public function scopeActive($query)
+    {
+        return $query->whereNull('cancelled_at');
     }
 
     public function petugas()

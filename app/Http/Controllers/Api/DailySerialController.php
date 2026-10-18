@@ -34,7 +34,8 @@ class DailySerialController extends Controller
                 // Sesi berikutnya mulai dari serial_start sesi berikutnya
                 $nextSerial = $typeSerials->firstWhere('session', $serial->session + 1);
 
-                $count = Transaction::where('date', $date)
+                $count = Transaction::active()
+                    ->where('date', $date)
                     ->where('vehicle_type', $type)
                     ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
                     ->when($nextSerial, function ($q) use ($serial, $nextSerial) {

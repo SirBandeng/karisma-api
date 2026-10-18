@@ -14,20 +14,23 @@ return new class extends Migration
             }
         });
 
-        // Update unique constraint
-        Schema::table('daily_serial_numbers', function (Blueprint $table) {
-            try {
+        // Drop unique constraint lama kalau ada
+        try {
+            Schema::table('daily_serial_numbers', function (Blueprint $table) {
                 $table->dropUnique(['date', 'vehicle_type']);
-            } catch (\Exception $e) {
-                // Constraint mungkin sudah tidak ada
-            }
+            });
+        } catch (\Exception $e) {
+            // Constraint sudah tidak ada, skip
+        }
 
-            try {
+        // Tambah unique constraint baru kalau belum ada
+        try {
+            Schema::table('daily_serial_numbers', function (Blueprint $table) {
                 $table->unique(['date', 'vehicle_type', 'session', 'terminal_id']);
-            } catch (\Exception $e) {
-                // Constraint mungkin sudah ada
-            }
-        });
+            });
+        } catch (\Exception $e) {
+            // Constraint mungkin sudah ada, skip
+        }
     }
 
     public function down(): void

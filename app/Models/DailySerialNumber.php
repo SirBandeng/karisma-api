@@ -12,6 +12,7 @@ class DailySerialNumber extends Model
         'terminal_id',
         'date',
         'vehicle_type',
+        'session',
         'serial_start',
         'inputted_by',
         'inputted_at',

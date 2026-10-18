@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DailySerialNumber;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class DailySerialController extends Controller
 {
@@ -37,14 +38,15 @@ class DailySerialController extends Controller
                     ->where('vehicle_type', $type)
                     ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
                     ->when($nextSerial, function ($q) use ($serial, $nextSerial) {
-                        // Transaksi antara serial_start sesi ini dan sesi berikutnya
                         $q->where('recorded_at', '>=', $serial->inputted_at);
                         $q->where('recorded_at', '<', $nextSerial->inputted_at);
                     }, function ($q) use ($serial) {
-                        // Sesi terakhir — semua transaksi setelah inputted_at
                         $q->where('recorded_at', '>=', $serial->inputted_at);
                     })
                     ->count();
+
+                // Debug sementara
+                Log::info("Session {$serial->session} - inputted_at: {$serial->inputted_at} - count: {$count}");
 
                 $sessions[] = [
                     'session'      => $serial->session,

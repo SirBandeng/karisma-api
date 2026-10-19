@@ -59,7 +59,8 @@ class DailySheetExport implements
 
     public function collection()
     {
-        $transactions = Transaction::with('petugas')
+        $transactions = Transaction::active()
+            ->with('petugas')
             ->where('date', $this->date)
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $this->terminalId))
             ->orderBy('recorded_at')

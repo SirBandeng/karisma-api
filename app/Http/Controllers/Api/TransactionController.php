@@ -151,7 +151,8 @@ class TransactionController extends Controller
     {
         $terminalId = $request->user()->terminal_id;
 
-        $cancellations = Transaction::with(['petugas:id,name', 'cancelledBy:id,name'])
+        $cancellations = Transaction::active()
+            ->with(['petugas:id,name', 'cancelledBy:id,name'])
             ->whereHas('petugas', fn($q) => $q->where('terminal_id', $terminalId))
             ->whereNotNull('cancelled_at')
             ->orderByDesc('cancelled_at')

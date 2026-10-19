@@ -72,11 +72,16 @@ class ReportController extends Controller
             ];
         }
 
+        $note = \App\Models\DailyNote::where('date', $date)
+            ->where('terminal_id', $terminalId)
+            ->first();
+
         return response()->json([
             'date'             => $date,
             'per_kategori'     => $result,
             'total_kendaraan'  => $grandCount,
             'total_pendapatan' => $grandTotal,
+            'note'             => $note?->note,
         ]);
     }
 

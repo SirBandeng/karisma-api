@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TariffController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TerminalController;
+use App\Http\Controllers\Api\DailyNoteController;
 
 // ─── Public ───────────────────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
@@ -53,6 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/users/{user}/toggle',  [UserController::class, 'toggle']);
 
         Route::get('/transactions/cancellations', [TransactionController::class, 'cancellations']);
+
+        Route::get('/daily-notes',    [DailyNoteController::class, 'show']);
+        Route::post('/daily-notes',   [DailyNoteController::class, 'upsert']);
+        Route::delete('/daily-notes', [DailyNoteController::class, 'destroy']);
     });
 
     // ─── Superadmin only ──────────────────────────────

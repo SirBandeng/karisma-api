@@ -165,6 +165,17 @@ class DailySheetExport implements
             '',
         ];
 
+        // Tambah note harian kalau ada
+        $note = \App\Models\DailyNote::where('date', $this->date)
+            ->where('terminal_id', $this->terminalId)
+            ->first();
+
+        if ($note && $note->note) {
+            $rows[] = ['', '', '', '', '', ''];
+            $rows[] = ['', 'CATATAN', '', '', '', ''];
+            $rows[] = ['', $note->note, '', '', '', ''];
+        }
+
         return collect($rows);
     }
 
